@@ -1,0 +1,47 @@
+<?php
+/**
+* Implements hook_install().
+*/
+function media_wysiwyg_resp_img_install() {
+  // Create field_file_image_use_picture_tag field at image bundle of file entity
+  field_create_field(array(
+    'field_name' => 'field_file_image_use_picture_tag',
+    'type'       => 'list_boolean',
+  ));
+  $entity_type = 'file';
+  $entity_info = entity_get_info($entity_type);
+  $picture_tag = array(
+    'field_name'  => 'field_file_image_use_picture_tag',
+    'entity_type' => $entity_type,
+    'bundle' => 'image',
+    'description' => t('Replace img tags with markup that contains media width breakpoints. The appropriate image file size will be chosen.'),
+    'label' => t('Make image responsive with the picture module'),
+    'required' => FALSE,
+    'widget' => array(
+      'type'   => 'options_onoff',
+      'weight' => -2,
+      'module' => 'options',
+      'active' => TRUE,
+      'settings' => array(
+        'display_label' => TRUE,
+      ),
+    ),
+    'settings' => array(
+      'user_register_form' => FALSE,
+      'wysiwyg_override'   => TRUE,
+    ),
+    'display' => array(
+      'default' => array(
+        'label'  => 'above',
+        'type'   => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+  );
+  foreach ($entity_info['view modes'] as $view_mode => $value) {
+    $picture_tag['display'][$view_mode]['label']  = $picture_tag['display']['default']['label'];
+    $picture_tag['display'][$view_mode]['type']   = $picture_tag['display']['default']['type'];
+    $picture_tag['display'][$view_mode]['weight'] = $picture_tag['display']['default']['weight'];
+  }
+  field_create_instance($picture_tag);
+}

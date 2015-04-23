@@ -1,0 +1,82 @@
+<?php
+
+/**
+ * @file
+ * Adds option on Media WYSIWYG to enable picture-specific 
+ * attributes on images.
+ *
+ * @author Roland Michael dela Peña.
+ */
+
+/**
+ * Implements hook_form_FIELD_UI_FIELD_EDIT_FORM_alter().
+ */
+function media_wysiwyg_resp_img_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  if ($form['#instance']['entity_type'] == 'file' && $form['#instance']['bundle'] == 'image' && $form['#field']['field_name'] == 'field_file_image_use_picture_tag') {
+    $picture_group_options = array();
+    $picture_mappings = picture_mapping_load_all();
+    if ($picture_mappings && !empty($picture_mappings)) {
+      foreach ($picture_mappings as $machine_name => $picture_mapping) {
+        $breakpoint_group = $picture_mapping->getBreakpointGroup();
+        if ($breakpoint_group) {
+          $picture_group_options[$machine_name] = $picture_mapping->label;
+        }
+      }
+    }
+    $form['instance']['settings']['picture_mapping'] = array(
+      '#type' => 'select',
+      '#title' => t('Picture mapping'),
+      '#options' => $picture_group_options,
+      '#description' => t('Select a picture mapping.'),
+      '#default_value' => isset($form['#instance']['settings']['picture_mapping']) ? $form['#instance']['settings']['picture_mapping'] : '',
+    );
+  }
+}
+
+/**
+ * Implements hook_media_wysiwyg_format_form_prepare_alter().
+ */
+function media_wysiwyg_resp_img_media_wysiwyg_format_form_prepare_alter(&$form, &$form_state, $file) {
+  if (isset($form['options']['fields']['field_file_image_use_picture_tag'])) {
+    $lang = $form['options']['fields']['field_file_image_use_picture_tag']['#language'];
+    $val  = $file->field_file_image_use_picture_tag[$lang];
+    $form['options']['fields']['field_file_image_use_picture_tag'][$lang]['#default_value'] = $val;
+  }
+}
+
+/**
+ * Implements hook_wysiwyg_plugin().
+ */
+function media_wysiwyg_resp_img_wysiwyg_plugin($editor, $version) {
+  static $picture_settings;
+  if (!$picture_settings) {
+    $field_info = field_info_instance('file', 'field_file_image_use_picture_tag', 'image');
+    $picture_mapping_name = $field_info['settings']['picture_mapping'];
+    $picture_mapping = picture_mapping_load($picture_mapping_name);
+    $picture_group   = $picture_mapping->getBreakpointGroup();
+    // Add the filter handling.
+    $picture_settings = array(
+      'pictureGroup'   => $picture_group->machine_name,
+      'pictureMapping' => $picture_mapping->machine_name,
+    );
+    drupal_add_js(array('media_wysiwyg_resp_img' => $picture_settings), 'setting');
+    drupal_add_js(drupal_get_path('module', 'media_wysiwyg_resp_img') . '/js/media_wysiwyg_resp_img.filter.js', array('weight' => 1));
+  }
+}
+
+/**
+ * Implements hook_media_wysiwyg_token_to_markup_alter().
+ */
+function media_wysiwyg_resp_img_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings) {
+  if (isset($settings['fields']['field_file_image_use_picture_tag'][LANGUAGE_NONE])) {
+    if ($settings['fields']['field_file_image_use_picture_tag'][LANGUAGE_NONE]) {
+      $field_info = field_info_instance('file', 'field_file_image_use_picture_tag', 'image');
+      $picture_mapping_name = $field_info['settings']['picture_mapping'];
+      $picture_mapping = picture_mapping_load($picture_mapping_name);
+      $picture_group   = $picture_mapping->getBreakpointGroup();
+      // Add picture-specific attributes on this image
+      $element['#attributes']['data-picture-group']   = $picture_group->machine_name;
+      $element['#attributes']['data-picture-mapping'] = $picture_mapping->machine_name;
+    }
+  }
+}

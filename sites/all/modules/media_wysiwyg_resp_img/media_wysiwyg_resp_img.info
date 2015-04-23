@@ -1,0 +1,13 @@
+name = Media WYSIWYG responsive image
+description = Adds option on Media WYSIWYG to enable picture-specific attributes on images.
+package = Media
+core = 7.x
+
+dependencies[] = media_wysiwyg
+dependencies[] = picture
+; Information added by Drupal.org packaging script on 2015-03-02
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "media_wysiwyg_resp_img"
+datestamp = "1425276782"
+
