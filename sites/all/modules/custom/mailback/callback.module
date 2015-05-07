@@ -1,0 +1,74 @@
+<?php
+
+
+//Отображаем блок на странице настройки блоков
+function callback_block_info() {
+  $blocks['callback'] = array(
+    'info' => t('Писмо Администратору'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+//Строим форму
+function callback_form($form_state,&$form_submit){
+  $form['textmail']=array(
+    '#title'=>t('Текст сообщения'),
+    '#type'=>'textfield',
+    '#required'=>TRUE,
+    '#maxlength'=> 50,
+    '#size'=>30,
+  );
+  
+  $form['mail']=array(
+    '#title'=>t('Адрес'),
+    '#type'=>'textfield',
+    '#required'=>TRUE,
+    '#maxlength'=> 50,
+    '#size'=>30,
+  );
+  
+  $form['submit']=array(
+    '#type'=>'submit',
+    '#value'=>t('Отправить'),
+  );
+  
+  return $form;
+}
+
+//Выводим блок
+function callback_block_view($delta = '') {
+  $block = array();
+      $block['content'] = drupal_get_form('callback_form');
+  return $block;
+}
+
+//Проверка формы
+function callback_form_validate($form, &$form_state){
+  //debug($form_state['values']);
+  if(mb_strlen($form_state['values']['textmail'])<3){
+    form_set_error('textmail', t('Слишком короткое имя.'));
+  }
+}
+
+//Отправка мейла
+function callback_form_submit($form, &$form_state){
+    //Получаем даные преданные из формы и пишем в переменные для удосбства
+    $textmail   = $form_state['values']['textmail'];
+    $mail  = $form_state['values']['mail'];
+
+    //Формируем тело письма
+    $str  = "Имя ".$textmail."\r\n";
+    $str .= "Телефон ".$mail."\r\n";
+    
+    //Отправляем через функцию друпала
+    // На мейл администратора сайта variable_get('site_mail')
+    drupal_mail('system', 'mail', variable_get('site_mail'), language_default(), array(
+      'context' => array(
+        'subject' => 'Заполнена форма Письма',
+        'message' => $str,
+      )
+    ));
+    //И сообщение пользователю, о то что отправка данных состоялась
+    drupal_set_message('Сообщение отправлено');
+}
